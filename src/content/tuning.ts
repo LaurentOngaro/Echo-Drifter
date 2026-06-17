@@ -149,3 +149,64 @@ export const audio = {
   fadeInMinSec: 0.8,
   fadeOutMinSec: 1.2,
 } as const;
+
+export const visual = {
+  background: 0x0a0612,
+
+  camera: {
+    fov: 55,
+    near: 0.1,
+    far: 100,
+    fixedZ: 8,
+    damping: 0.88,
+    maxLookAhead: 0.8,
+  },
+
+  lights: {
+    ambient: { color: 0x1a0a2e, intensity: 0.8 },
+    point: { color: 0x6644aa, intensity: 1.2, position: [2, 3, 5], distance: 30 },
+    accent: { color: 0x3fd6ff, intensity: 0.6, distance: 8 },
+  },
+
+  palette: {
+    player: 0x3fd6ff,
+    playerGlow: 0x8aeeff,
+    collectible: 0xff80bf,
+    collectibleGlow: 0xffb3d9,
+    anomaly: 0xc44040,
+    hudText: 0xe8e0f0,
+  },
+
+  orb: {
+    pulseHz: 0.8,
+    pulseAmplitude: 0.04,
+    playerRotationZMax: 0.15,
+    collectibleRotationY: 0.2,
+  },
+
+  ripple: {
+    maxConcurrent: 5,
+    durationMs: 600,
+    startScale: 0.0,
+    endScale: 2.5,
+    tubeRadius: 0.05,
+  },
+
+  trail: {
+    poolSize: 8,
+    sphereRadius: 0.12,
+    updateIntervalSec: 0.05,
+    velocityThreshold: 0.05,
+    headOpacity: 0.5,
+  },
+
+  collect: {
+    radius: 1.6,
+  },
+
+  ground: {
+    radius: 60,
+    opacity: 0.12,
+    color: 0x0a0612,
+  },
+} as const;

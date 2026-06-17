@@ -10,9 +10,13 @@ import { updateDrift } from './gameplay/playerController.ts';
 import { createCameraRig } from './presentation/cameraRig.ts';
 import {
   createPlayerOrb,
-  createFragmentOrb,
-  createHalo,
+  createPlayerGlow,
+  createCollectibleOrb,
+  createCollectibleGlow,
+  createCollectibleHalo,
   createAnomalyBloom,
+  createAnomalyGlow,
+  createBillboardRegistry,
 } from './presentation/meshes.ts';
 import { createVfxSystem } from './presentation/vfx.ts';
 import {
@@ -26,6 +30,7 @@ import { createAudioDirector } from './audio/audioDirector.ts';
 import { scaleHz } from './content/scale.ts';
 import { createHud } from './ui/hud.ts';
 import { resetWorldAnomalies } from './gameplay/anomalySystem.ts';
+import { drift, visual } from './content/tuning.ts';
 import type { Updatable, Vec3 } from './types/index.ts';
 
 function main() {
@@ -41,60 +46,88 @@ function main() {
   const input = createKeyboardInput();
   const vfx = createVfxSystem(echoScene.scene);
   const audio = createAudioDirector();
+  const billboards = createBillboardRegistry();
+  billboards.setCamera(echoScene.camera);
 
   spawnFragments(world);
   spawnAnomalies(world);
 
-  const playerMesh = createPlayerOrb();
-  echoScene.scene.add(playerMesh);
+  const playerGroup = new THREE.Group();
+  const playerOrb = createPlayerOrb();
+  const playerGlow = createPlayerGlow();
+  playerGroup.add(playerOrb);
+  playerGroup.add(playerGlow);
+  billboards.register(playerGlow);
+  echoScene.scene.add(playerGroup);
 
-  const fragmentMeshes = new Map<string, THREE.Mesh>();
-  const fragmentHalos = new Map<string, THREE.Mesh>();
-  const fragmentBaseScale = new Map<string, number>();
-  const anomalyMeshes = new Map<string, THREE.Mesh>();
+  interface FragmentEntry {
+    group: THREE.Group;
+    orb: THREE.Mesh;
+    halo: THREE.Mesh;
+    glow: THREE.Mesh;
+    baseScale: number;
+  }
+  interface AnomalyEntry {
+    group: THREE.Group;
+    bloom: THREE.Mesh;
+    glow: THREE.Mesh;
+  }
+  const fragmentEntries = new Map<string, FragmentEntry>();
+  const anomalyEntries = new Map<string, AnomalyEntry>();
 
   function populateWorldMeshes() {
     for (const f of world.fragments) {
-      const mesh = createFragmentOrb(0xffe1a8);
-      mesh.position.set(f.position.x, f.position.y, f.position.z);
-      echoScene.scene.add(mesh);
-      fragmentMeshes.set(f.id, mesh);
-      fragmentBaseScale.set(f.id, mesh.scale.x);
-
-      const halo = createHalo(0.6, 0xffe1a8);
-      halo.position.set(f.position.x, f.position.y - 0.5, f.position.z);
-      echoScene.scene.add(halo);
-      fragmentHalos.set(f.id, halo);
+      const group = new THREE.Group();
+      const orb = createCollectibleOrb();
+      const halo = createCollectibleHalo();
+      const glow = createCollectibleGlow();
+      group.add(orb);
+      group.add(halo);
+      group.add(glow);
+      group.position.set(f.position.x, f.position.y, f.position.z);
+      echoScene.scene.add(group);
+      billboards.register(glow);
+      fragmentEntries.set(f.id, {
+        group,
+        orb,
+        halo,
+        glow,
+        baseScale: orb.scale.x,
+      });
     }
     for (const a of world.anomalies) {
-      const mesh = createAnomalyBloom(0xff4f9f);
-      mesh.position.set(a.position.x, a.position.y, a.position.z);
-      mesh.scale.setScalar(a.radius);
-      echoScene.scene.add(mesh);
-      anomalyMeshes.set(a.id, mesh);
+      const group = new THREE.Group();
+      const bloom = createAnomalyBloom();
+      const glow = createAnomalyGlow();
+      group.add(bloom);
+      group.add(glow);
+      group.position.set(a.position.x, a.position.y, a.position.z);
+      group.scale.setScalar(a.radius);
+      echoScene.scene.add(group);
+      billboards.register(glow);
+      anomalyEntries.set(a.id, { group, bloom, glow });
     }
   }
 
   function clearWorldMeshes() {
-    for (const m of fragmentMeshes.values()) {
-      echoScene.scene.remove(m);
-      (m.geometry as THREE.BufferGeometry).dispose();
-      (m.material as THREE.Material).dispose();
+    for (const e of fragmentEntries.values()) {
+      echoScene.scene.remove(e.group);
+      e.orb.geometry.dispose();
+      (e.orb.material as THREE.Material).dispose();
+      e.halo.geometry.dispose();
+      (e.halo.material as THREE.Material).dispose();
+      e.glow.geometry.dispose();
+      (e.glow.material as THREE.Material).dispose();
     }
-    fragmentMeshes.clear();
-    for (const h of fragmentHalos.values()) {
-      echoScene.scene.remove(h);
-      (h.geometry as THREE.BufferGeometry).dispose();
-      (h.material as THREE.Material).dispose();
+    fragmentEntries.clear();
+    for (const e of anomalyEntries.values()) {
+      echoScene.scene.remove(e.group);
+      e.bloom.geometry.dispose();
+      (e.bloom.material as THREE.Material).dispose();
+      e.glow.geometry.dispose();
+      (e.glow.material as THREE.Material).dispose();
     }
-    fragmentHalos.clear();
-    fragmentBaseScale.clear();
-    for (const m of anomalyMeshes.values()) {
-      echoScene.scene.remove(m);
-      (m.geometry as THREE.BufferGeometry).dispose();
-      (m.material as THREE.Material).dispose();
-    }
-    anomalyMeshes.clear();
+    anomalyEntries.clear();
   }
 
   populateWorldMeshes();
@@ -108,7 +141,7 @@ function main() {
     audio.setDissonance(e.amount);
   });
 
-  bus.on('COLLECTED', (_e) => {
+  bus.on('COLLECTED', () => {
     audio.playCollectTone(scaleHz(7 + (world.fragmentsCollected % 4)));
   });
 
@@ -118,15 +151,27 @@ function main() {
     getVelocity: () => world.playerVelocity,
   });
 
+  let totalTime = 0;
+
   const playerSync: Updatable = {
-    update(_dt: number) {
-      playerMesh.position.set(
+    update(dt: number) {
+      totalTime += dt;
+      playerGroup.position.set(
         world.playerPosition.x,
         world.playerPosition.y,
         world.playerPosition.z,
       );
-      const flick = 1 + (Math.random() - 0.5) * 0.04 * world.dissonance;
-      playerMesh.scale.setScalar(flick);
+      vfx.setPlayerPosition(world.playerPosition);
+      vfx.setPlayerVelocity(world.playerVelocity);
+      const speed = Math.hypot(
+        world.playerVelocity.x,
+        world.playerVelocity.y,
+        world.playerVelocity.z,
+      );
+      const speedNorm = Math.min(1, speed / drift.maxSpeed);
+      const pulse = 1 + visual.orb.pulseAmplitude * Math.sin(totalTime * 2 * Math.PI * visual.orb.pulseHz);
+      playerOrb.scale.setScalar(pulse);
+      playerOrb.rotation.z += speedNorm * visual.orb.playerRotationZMax * dt;
     },
   };
 
@@ -149,11 +194,9 @@ function main() {
       if (!collected) return;
       markCollected(world, collected);
       const pos: Vec3 = { ...collected.position };
-      vfx.spawnRipple(pos, 0xffe1a8);
-      const mesh = fragmentMeshes.get(collected.id);
-      const halo = fragmentHalos.get(collected.id);
-      if (mesh) mesh.visible = false;
-      if (halo) halo.visible = false;
+      vfx.spawnRipple(pos, visual.palette.collectible);
+      const entry = fragmentEntries.get(collected.id);
+      if (entry) entry.group.visible = false;
       bus.emit({ type: 'COLLECTED', id: collected.id, position: pos });
       bus.emit({ type: 'MUSIC_LAYER_UNLOCKED', layer: collected.unlocks });
     },
@@ -162,26 +205,26 @@ function main() {
   const guidanceVisual: Updatable = {
     update(t: number) {
       const nearest = findNearestUncollected(world);
-      for (const [id, mesh] of fragmentMeshes) {
+      for (const [id, entry] of fragmentEntries) {
         const frag = world.fragments.find((f) => f.id === id);
         if (!frag || frag.collected) continue;
-        const halo = fragmentHalos.get(id);
-        const baseScale = fragmentBaseScale.get(id) ?? 1;
         const isNearest = nearest && nearest.fragment.id === id;
-        if (isNearest) {
-          const pulse = 0.18 + 0.18 * Math.sin(t * 4);
-          mesh.scale.setScalar(baseScale * (1 + pulse));
-          if (halo) {
-            halo.scale.setScalar(1 + pulse * 1.5);
-            (halo.material as THREE.MeshBasicMaterial).opacity = 0.5 + pulse * 0.3;
-          }
-        } else {
-          mesh.scale.setScalar(baseScale);
-          if (halo) {
-            halo.scale.setScalar(1);
-            (halo.material as THREE.MeshBasicMaterial).opacity = 0.25;
-          }
-        }
+        const targetScale = entry.baseScale * (1 + (isNearest ? 0.2 * Math.sin(t * 4) : 0));
+        entry.orb.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
+        const haloMat = entry.halo.material as THREE.MeshBasicMaterial;
+        const glowMat = entry.glow.material as THREE.MeshBasicMaterial;
+        const targetHaloOpacity = isNearest ? 0.5 : 0.25;
+        const targetGlowOpacity = isNearest ? 0.55 : 0.4;
+        haloMat.opacity = THREE.MathUtils.lerp(haloMat.opacity, targetHaloOpacity, 0.1);
+        glowMat.opacity = THREE.MathUtils.lerp(glowMat.opacity, targetGlowOpacity, 0.1);
+      }
+    },
+  };
+
+  const fragmentRotation: Updatable = {
+    update(dt: number) {
+      for (const entry of fragmentEntries.values()) {
+        entry.orb.rotation.y += visual.orb.collectibleRotationY * dt;
       }
     },
   };
@@ -191,14 +234,17 @@ function main() {
       updateAnomalies(world, dt, bus);
       vfx.setDissonance(world.dissonance);
       for (const a of world.anomalies) {
-        const mesh = anomalyMeshes.get(a.id);
-        if (!mesh) continue;
+        const entry = anomalyEntries.get(a.id);
+        if (!entry) continue;
         const pulse = 1 + 0.15 * Math.sin(a.phase);
         const dissonanceScale = 1 + 0.25 * world.dissonance;
-        mesh.scale.setScalar(a.radius * pulse * dissonanceScale);
-        const mat = mesh.material as THREE.MeshStandardMaterial;
-        mat.opacity = 0.45 + 0.25 * Math.sin(a.phase * 1.4);
-        mat.emissiveIntensity = 0.7 + 0.5 * world.dissonance;
+        const target = a.radius * pulse * dissonanceScale;
+        entry.group.scale.lerp(new THREE.Vector3(target, target, target), 0.1);
+        const mat = entry.bloom.material as THREE.MeshStandardMaterial;
+        const targetOpacity = 0.55 + 0.25 * Math.sin(a.phase * 1.4);
+        mat.opacity = THREE.MathUtils.lerp(mat.opacity, targetOpacity, 0.1);
+        const targetEmissive = 0.4 + 0.4 * world.dissonance;
+        mat.emissiveIntensity = THREE.MathUtils.lerp(mat.emissiveIntensity, targetEmissive, 0.1);
       }
     },
   };
@@ -207,9 +253,11 @@ function main() {
     playerUpdater,
     playerSync,
     rig,
+    billboards.updatable,
     vfx.updatable,
     collectionSystem,
     guidanceVisual,
+    fragmentRotation,
     anomalyUpdater,
   );
 
@@ -254,15 +302,15 @@ function setupStartOverlay(
   overlay.id = 'start-overlay';
   overlay.innerHTML = `
     <div class="start-card">
-      <h1>Echo Drifter</h1>
+      <h1>ECHO DRIFTER</h1>
       <p class="lead">Drift through a synthwave space and rebuild a living track.</p>
       <ul>
         <li>WASD or arrow keys to drift</li>
         <li>Collect the glowing fragments to unlock musical layers</li>
-        <li>Avoid the pink blooms - they break the harmony</li>
+        <li>Avoid the red blooms - they break the harmony</li>
         <li>Press R to restart</li>
       </ul>
-      <p class="cta">Click or press any key to begin</p>
+      <p class="cta">Click to begin</p>
     </div>
   `;
   document.body.appendChild(overlay);

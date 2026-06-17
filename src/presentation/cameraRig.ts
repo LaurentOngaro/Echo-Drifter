@@ -1,7 +1,7 @@
 // src/presentation/cameraRig.ts
 import * as THREE from 'three';
 import type { Updatable, Vec3 } from '../types/index.ts';
-import { camera as camCfg } from '../content/tuning.ts';
+import { visual } from '../content/tuning.ts';
 
 export interface CameraRigDeps {
   camera: THREE.PerspectiveCamera;
@@ -10,38 +10,29 @@ export interface CameraRigDeps {
 }
 
 export function createCameraRig(deps: CameraRigDeps): Updatable {
-  const target = new THREE.Vector3();
-  const lookTarget = new THREE.Vector3();
-  const currentPos = new THREE.Vector3();
-  const currentLook = new THREE.Vector3();
+  const lookAt = new THREE.Vector3();
 
   return {
-    update(_dt: number) {
+    update(dt: number) {
       const t = deps.getTarget();
       const v = deps.getVelocity();
+      const cam = deps.camera;
+      const cfg = visual.camera;
 
-      target.set(
-        t.x,
-        t.y + camCfg.height,
-        t.z + camCfg.distance,
-      );
+      const cappedDt = Math.min(dt, 1 / 30);
+      const k = (1 - cfg.damping) * cappedDt * 60;
 
-      lookTarget.set(
-        t.x + v.x * camCfg.lookAheadDistance,
-        t.y,
-        t.z + v.z * camCfg.lookAheadDistance,
-      );
+      const targetX = t.x;
+      const targetY = t.y;
+      cam.position.x += (targetX - cam.position.x) * k;
+      cam.position.y += (targetY - cam.position.y) * k;
+      cam.position.z = cfg.fixedZ;
 
-      if (currentPos.lengthSq() === 0) {
-        currentPos.copy(target);
-        currentLook.copy(lookTarget);
-      }
-
-      currentPos.lerp(target, camCfg.followLerp);
-      currentLook.lerp(lookTarget, camCfg.lookAheadLerp);
-
-      deps.camera.position.copy(currentPos);
-      deps.camera.lookAt(currentLook);
+      const lookX = t.x + v.x * cfg.maxLookAhead;
+      const lookY = t.y;
+      const lookZ = 0;
+      lookAt.set(lookX, lookY, lookZ);
+      cam.lookAt(lookAt);
     },
   };
 }

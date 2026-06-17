@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-06-17
+
+Presentation layer rewrite to match the v0.1.0 visual brief exactly: rounded-only geometries, brief-specified materials/lights, fixed-camera quasi-orthographic view, deterministic 0.8 Hz pulses, lerped transitions, pure-DOM HUD with Orbitron + monospace stack.
+
+### ✨ Added
+
+- New `visual` export in `src/content/tuning.ts` — single source of truth for every visual constant (camera, lights, palette, orb pulse, ripple, trail, collect, ground).
+- `createBillboardRegistry()` in `src/presentation/meshes.ts` — single updater that calls `mesh.quaternion.copy(camera.quaternion)` every frame for every registered glow (player, collectibles, anomalies), so billboards track the camera even as it lerps.
+- Player pulse (0.8 Hz sine, ±4%), Z-rotation driven by speed/maxSpeed × 0.15 rad/s, with parented glow plane.
+- Player motion trail: pool of 8 spheres, snake update at 20 Hz, head opacity 0.5 → 0 along tail, freeze + 200 ms alpha-fade below 0.05 velocity threshold.
+- Collectible pulse on nearest fragment (sin t × 4 lerped over 0.1 toward target opacity and scale).
+- Ripple pool: 5 concurrent, ease-out cubic scale 0 → 2.5 over 600 ms, opacity 1 → 0, dissonance-coupling opacity dim.
+- Anomaly bloom + red glow billboard, group scale and emissive intensity lerped at 0.1 per frame.
+- HUD: title "ECHO DRIFTER" (uppercase, letter-spacing 0.3em), 5 pills in order DRONE / BASS / PAD / ARP / LEAD (pulse is internal to audio and not a separate indicator), dissonance bar whose `background-color` lerps cyan → red via inline `rgb(...)` style.
+- `index.html`: Google Fonts `<link>` for Orbitron 400/600 + Share Tech Mono, `<meta name="color-scheme" content="dark">`, `<div id="hud">` skeleton.
+- `src/style.css`: `@import` Orbitron, body bg `#0a0612` + text `#e8e0f0`, sober start-overlay (no gradient, no heavy shadow), all transitions `0.3s ease`.
+
+### 🔧 Changed
+
+- `src/presentation/scene.ts` — full rewrite: `setClearColor(0x0a0612, 1)`, no fog, single AmbientLight 0x1a0a2e @ 0.8, single PointLight 0x6644aa @ 1.2 (dist 30) + small accent 0x3fd6ff @ 0.6 (dist 8), FOV 55°, camera Z locked at 8 (X/Y driven by the rig).
+- `src/presentation/cameraRig.ts` — full rewrite: Z clamped to `visual.camera.fixedZ`; X/Y damped toward target via `(1 - damping) * dt * 60` with `Math.min(dt, 1/30)` cap to prevent tab-pause snap; optional micro-anticipation `target.x + vx * maxLookAhead`.
+- `src/presentation/meshes.ts` — full rewrite. Allowed geometries: `SphereGeometry`, `TorusGeometry`, `PlaneGeometry`, `CircleGeometry` only. No `RingGeometry`, no `Box`/`Cone`/`Cylinder`/`Icosahedron`/`Octahedron`, no wireframes. Halos = `TorusGeometry(0.6, 0.03, 8, 48)` flat on XZ (rotation.x = -π/2). Ripples = `TorusGeometry(0.5, 0.05, 8, 48)`. Ground = `CircleGeometry(60, 96)` at y=-2, opacity 0.12, color = background.
+- `src/presentation/vfx.ts` — full rewrite: pre-allocated pool of 5 ripples, recyclable on overflow (oldest age); per-frame ease-out cubic scale + linear opacity. Trail updater with velocity gate and head/tail opacity decay.
+- `src/ui/hud.ts` — full rewrite. Pure DOM, no shadow DOM, no Three.js imports. RESET handler iterates `LAYER_PILLS` to light DRONE by default and clear the others.
+- `src/main.ts` — wiring only: replaces `createFragmentOrb(0xffe1a8)` / `createHalo(0.6, 0xffe1a8)` / `createAnomalyBloom(0xff4f9f)` with palette-driven `createCollectibleOrb()` / `createCollectibleHalo()` / `createAnomalyBloom()`. Each fragment/anomaly is a `THREE.Group` containing the orb + halo + glow (billboard registered globally). Player and anomaly updaters lerp scale / opacity / emissiveIntensity at 0.1 per frame instead of `setScalar`/`=`-set instant changes.
+- Emissive intensities lowered to brief values: player 0.6, collectible 0.5, anomaly 0.4 (was 1.2 / 1.4 / 0.9).
+- Pulse player scale is the deterministic `1 + 0.04 * sin(t * 2π * 0.8)` sine (no more `Math.random()` flicker).
+- `index.html` title set to "ECHO DRIFTER".
+
+### 🐛 Fixed
+
+- Removed `(renderer as any).updateScene` legacy path; remains a typed `Updatable[]` registry.
+- Removed the second (cyan) point light and the `FogExp2` background; fixed-camera quasi-orthographic view is the only depth cue.
+- Removed instant `mesh.scale.setScalar(...)` and `mat.opacity =` assignments on per-frame state changes; replaced with `Vector3.lerp` / `MathUtils.lerp` toward a target.
+- Removed `Math.random()` from `presentation/playerSync` (was used to flicker the player scale on dissonance).
+- Removed `RingGeometry` use in `meshes.ts` (was used for both halos and ripples); replaced with `TorusGeometry` per brief §8.
+
+### ✅ Tests
+
+- `npm run build` passes with zero TS errors.
+- Grep verification: 0 occurrences of `BoxGeometry | ConeGeometry | CylinderGeometry | IcosahedronGeometry | OctahedronGeometry | RingGeometry | wireframe` in `src/presentation/`.
+- Grep verification: 0 occurrences of `MeshPhongMaterial | MeshToonMaterial` in `src/presentation/`.
+- Grep verification: every `mesh.rotation.x =` in `src/presentation/` is `-Math.PI / 2` (flat layout for halo/ripple/ground) — no other X-axis rotation in the visual layer.
+- Visual smoke: dark violet `#0a0612` clear, no fog, Orbitron HUD title, 5 pills in order DRONE / BASS / PAD / ARP / LEAD, dissonance bar lerps cyan → red.
+
 ## [0.2.0] - 2026-06-17
 
 Audio subsystem rewrite to match the v0.1.0 brief exactly: single in-scale tonality, deterministic frequencies, per-layer timbres as specified, removed harsh warning, and a 4/4 grid pulse layer with kick + hat.
@@ -44,6 +89,7 @@ Audio subsystem rewrite to match the v0.1.0 brief exactly: single in-scale tonal
 
 - `npm run build` passes with zero TS errors.
 - Grep verification: 0 occurrences of `Math.random` in `src/audio/`; 0 occurrences of `'square'` oscillator type in `src/audio/`.
+- Grep verification (post-patch, 0.2.0): 0 orphan references to `playAnomalyWarning` in `src/` (method removed from `AudioDirector` public surface in 0.2.0; no caller left over).
 
 ## [0.1.0] - 2026-06-17
 
