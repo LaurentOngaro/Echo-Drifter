@@ -13,7 +13,7 @@ Repo GitHub : https://github.com/LaurentOngaro/Echo-Drifter
 ## État du projet (mis à jour au v0.1.0)
 - Pipeline Vite + TypeScript + Three.js + Web Audio API fonctionnel.
 - Proto v0.1.0 généré par Kilo Code + MiniMax M3.
-- Architecture cible définie dans _Helpers/docs/echo-drifter-mvp-phases.md.
+- Architecture cible définie dans _Helpers/docs/v0.1.0-mvp-phases.md.
 - Briefs artistiques disponibles :
   - Audio : _Helpers/docs/Iterations/v0.1.0_notes_audio_updates.md
   - Visuel : _Helpers/docs/Iterations/v0.1.0_notes_visual_updates.md
@@ -36,6 +36,6 @@ Repo GitHub : https://github.com/LaurentOngaro/Echo-Drifter
 - Concept & fantasy : _Helpers/docs/echo-drifter-concept.md
 - Master brief : _Helpers/docs/echo-drifter-master-brief.md
 - Brief Kilo Code : _Helpers/docs/kilo-build-brief.md
-- Plan MVP phases : _Helpers/docs/echo-drifter-mvp-phases.md (si présent) ou _Helpers/docs/Iterations/v0.1.0_Analyse du Proto & Feuille de route corrective.md
+- Plan MVP phases : _Helpers/docs/v0.1.0-mvp-phases.md (si présent) ou _Helpers/docs/Iterations/v0.1.0_Analyse du Proto & Feuille de route corrective.md
 - AGENTS.md (racine) : règles de workflow pour les agents IA
 ```

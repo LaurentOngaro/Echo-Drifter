@@ -46,7 +46,7 @@ echo-drifter/
 │     └─ etc...
 ├─ .kilo/
 │  └─ plans/
-│     └─ echo-drifter-mvp-phases.md   # Kilo-implementation plan
+│     └─ v0.1.0-mvp-phases.md   # Kilo-implementation plan
 ├─ public/                            # static assets (currently empty)
 ├─ src/
 │  ├─ audio/                      # Web Audio façade: director + 6 procedural layers
@@ -131,7 +131,7 @@ npm run preview  # serve the production build locally
 
 ## Kilo workflow
 
-The MVP plan lives at `.kilo/plans/echo-drifter-mvp-phases.md`. For each subsequent phase, ask Kilo to "Implement only Phase N", then review the changed files.
+The MVP plan lives at `.kilo/plans/v0.1.0-mvp-phases.md`. For each subsequent phase, ask Kilo to "Implement only Phase N", then review the changed files.
 
 Design sources live under `_Helpers/docs/`:
 
