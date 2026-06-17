@@ -1,4 +1,4 @@
-# Echo Drifter — Agents Guide
+# Echo Drifter - Agents Guide
 
 ## Mission
 

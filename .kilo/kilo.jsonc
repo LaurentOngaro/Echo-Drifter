@@ -1,7 +1,7 @@
 {
   "instructions": [
-    "Read docs/master-brief.md before making architectural decisions.",
-    "Read docs/kilo-build-brief.md before starting implementation.",
+    "Read _Helpers/docs/master-brief.md before making architectural decisions.",
+    "Read _Helpers/docs/kilo-build-brief.md before starting implementation.",
     "Use plan mode before large multi-file changes.",
     "Keep gameplay, audio, and presentation separated.",
     "Prefer small focused modules.",

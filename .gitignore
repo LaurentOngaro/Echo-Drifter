@@ -30,5 +30,5 @@ Thumbs.db
 !.env.example
 *.local
 
-# Couverture de tests (si tu ajoutes des tests plus tard)
+# Couverture de tests 
 coverage/

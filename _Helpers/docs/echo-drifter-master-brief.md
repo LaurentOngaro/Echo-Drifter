@@ -1,4 +1,4 @@
-# Echo Drifter — Master Brief
+# Echo Drifter - Master Brief
 
 ## Trigger
 
@@ -183,7 +183,7 @@ The intended outcome is experiential understanding of:
 - tension and release;
 - chord identity and harmonic color.
 
-This should be taught mainly through feel, feedback, naming, and progression—not through lectures.
+This should be taught mainly through feel, feedback, naming, and progression-not through lectures.
 
 ## Hazard philosophy
 

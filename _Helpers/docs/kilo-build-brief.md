@@ -1,4 +1,4 @@
-# Echo Drifter — Kilo Build Brief
+# Echo Drifter - Kilo Build Brief
 
 ## Trigger
 
@@ -8,7 +8,7 @@ ECHO_DRIFTER_KILO_BUILD
 
 Before writing code:
 
-1. Read `docs/echo-drifter-master-brief.md`.
+1. Read `_Helpers/docs/echo-drifter-master-brief.md`.
 2. Summarize constraints and main pillars.
 3. Propose a phased MVP implementation plan.
 4. Wait for approval before large architectural changes.
@@ -72,7 +72,7 @@ content/
 ui/
 types/
 
-docs/
+_Helpers/docs/
 echo-drifter-master-brief.md
 kilo-build-brief.md
 echo-drifter-concept.md
@@ -166,44 +166,44 @@ Minimal progression example:
 
 ## Phases
 
-### Phase 1 — Skeleton
+### Phase 1 - Skeleton
 
 - scaffold project;
 - renderer, scene, camera, resize handling;
 - base loop;
 - folder structure;
-- basic docs;
+- basic _Helpers/docs;
 - verify project runs.
 
-### Phase 2 — Movement
+### Phase 2 - Movement
 
 - implement drift controller;
 - add camera rig;
 - expose tuning values;
 - validate movement feel.
 
-### Phase 3 — World and collectibles
+### Phase 3 - World and collectibles
 
 - create open-space field;
 - spawn collectibles;
 - implement guidance;
 - add collection feedback.
 
-### Phase 4 — Anomaly system
+### Phase 4 - Anomaly system
 
 - implement one hazard type;
 - detect contact;
 - apply disruption effect;
 - add visual/audio response.
 
-### Phase 5 — Audio growth
+### Phase 5 - Audio growth
 
 - implement audio director;
 - add reactive state transitions;
 - map progression to music layers;
 - add disruption and recovery behavior.
 
-### Phase 6 — MVP polish
+### Phase 6 - MVP polish
 
 - minimal HUD;
 - restart flow;

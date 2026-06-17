@@ -1,4 +1,4 @@
-# Echo Drifter — Concept Document
+# Echo Drifter - Concept Document
 
 ## High concept
 
