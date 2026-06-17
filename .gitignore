@@ -1,0 +1,34 @@
+# Dépendances
+node_modules/
+
+# Builds Vite
+dist/
+dist-ssr/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Cache / outils
+*.tsbuildinfo
+.vite/
+.eslintcache
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Env / config locales
+.env
+.env.*
+!.env.example
+*.local
+
+# Couverture de tests (si tu ajoutes des tests plus tard)
+coverage/

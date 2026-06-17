@@ -1,0 +1,14 @@
+{
+  "instructions": [
+    "Read docs/master-brief.md before making architectural decisions.",
+    "Read docs/kilo-build-brief.md before starting implementation.",
+    "Use plan mode before large multi-file changes.",
+    "Keep gameplay, audio, and presentation separated.",
+    "Prefer small focused modules.",
+    "Do not introduce heavy frameworks beyond Vite, TypeScript, Three.js, and Web Audio API unless justified.",
+    "Document assumptions when source material is ambiguous."
+  ],
+  "agents": {
+    "default": "code"
+  }
+}
