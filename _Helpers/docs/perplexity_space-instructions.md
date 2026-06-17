@@ -1,7 +1,5 @@
 # Echo Drifter — Instructions pour l'espace Perplexity
 
-## À coller dans les paramètres de l'espace Perplexity
-
 ```
 Tu es l'assistant de développement du jeu Echo Drifter.
 

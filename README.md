@@ -33,54 +33,53 @@ The project should preserve these design constraints:
 
 ```text
 echo-drifter/
-├─ _Helpers/docs/                  # design source-of-truth + iteration notes
+├─ _Helpers/docs/                 # design source-of-truth + iteration notes
 │  ├─ echo-drifter-master-brief.md
 │  ├─ kilo-build-brief.md
 │  ├─ echo-drifter-concept.md
 │  ├─ perplexity_space-instructions.md
 │  ├─ ACTIONS_PLAN.md
-│  └─ Iterations/                  # per-version retrospective & decisions
-│     ├─ v0.1.0_Analyse du Proto & Feuille de route corrective.md
-│     ├─ v0.1.0_notes_audio_updates.md
-│     ├─ v0.1.0_notes_visual_updates.md
-│     ├─ v0.1.0_PerplexityChat_ImportantElements.md
-│     └─ v0.1.0_screenshot_main.gif
+│  └─ Iterations/                 # per-version retrospective & decisions
+│     ├─ vx.x.x_file1.
+│     ├─ vx.x.x_file2.md
+│     ├─ v0.1.0_screenshot_main.gif
+│     └─ etc...
 ├─ .kilo/
 │  └─ plans/
 │     └─ echo-drifter-mvp-phases.md   # Kilo-implementation plan
-├─ public/                              # static assets (currently empty)
+├─ public/                            # static assets (currently empty)
 ├─ src/
-│  ├─ audio/            # Web Audio façade: director + 6 procedural layers
+│  ├─ audio/                      # Web Audio façade: director + 6 procedural layers
 │  │  ├─ audioDirector.ts
-│  │  ├─ layerController.ts   # MusicLayer interface + GainLayerBase
-│  │  ├─ layers.ts            # Drone, Pulse, Bass, Pad, Arp, Lead
-│  │  └─ synth.ts             # noteHz, ADSR, secondsPerBeat
-│  ├─ content/          # tunables + music content
-│  │  ├─ tuning.ts            # palette, drift, camera, field, vfx, anomaly, audio
-│  │  ├─ scale.ts             # A-minor pentatonic + per-layer patterns
-│  │  └─ progression.ts       # fragment order → MusicLayerId
-│  ├─ core/             # engine-agnostic
+│  │  ├─ layerController.ts           # MusicLayer interface + GainLayerBase
+│  │  ├─ layers.ts                    # Drone, Pulse, Bass, Pad, Arp, Lead
+│  │  └─ synth.ts                     # noteHz, ADSR, secondsPerBeat
+│  ├─ content/                    # tunables + music content
+│  │  ├─ tuning.ts                    # palette, drift, camera, field, vfx, anomaly, audio
+│  │  ├─ scale.ts                     # A-minor pentatonic + per-layer patterns
+│  │  └─ progression.ts               # fragment order → MusicLayerId
+│  ├─ core/                           # engine-agnostic
 │  │  ├─ gameLoop.ts
-│  │  ├─ events.ts            # typed event bus
-│  │  ├─ world.ts             # pure logical state
+│  │  ├─ events.ts                    # typed event bus
+│  │  ├─ world.ts                     # pure logical state
 │  │  └─ stateMachine.ts
-│  ├─ gameplay/         # pure logic, no THREE
-│  │  ├─ playerController.ts  # inertial drift + disruption jitter
-│  │  ├─ input.ts             # keyboard source
-│  │  ├─ collectibleSystem.ts # seeded spawn + collision
-│  │  ├─ guidanceSystem.ts    # nearest uncollected + color blend
-│  │  └─ anomalySystem.ts     # spawn, proximity, dissonance fill/decay
-│  ├─ presentation/     # Three.js side only
+│  ├─ gameplay/                 # pure logic, no THREE
+│  │  ├─ playerController.ts          # inertial drift + disruption jitter
+│  │  ├─ input.ts                     # keyboard source
+│  │  ├─ collectibleSystem.ts         # seeded spawn + collision
+│  │  ├─ guidanceSystem.ts            # nearest uncollected + color blend
+│  │  └─ anomalySystem.ts             # spawn, proximity, dissonance fill/decay
+│  ├─ presentation/             # Three.js side only
 │  │  ├─ scene.ts
-│  │  ├─ cameraRig.ts         # damping follow + look-ahead
-│  │  ├─ meshes.ts            # rounded factory: player, fragment, halo, bloom, ripple, ground
-│  │  └─ vfx.ts               # ripple pool + dissonance-driven dim
+│  │  ├─ cameraRig.ts                 # damping follow + look-ahead
+│  │  ├─ meshes.ts                    # rounded factory: player, fragment, halo, bloom, ripple, ground
+│  │  └─ vfx.ts                       # ripple pool + dissonance-driven dim
 │  ├─ types/
-│  │  └─ index.ts             # Vec3, Updatable, MusicLayerId, InputState
+│  │  └─ index.ts                     # Vec3, Updatable, MusicLayerId, InputState
 │  ├─ ui/
-│  │  └─ hud.ts               # DOM HUD: layers, dissonance meter, restart
+│  │  └─ hud.ts                       # DOM HUD: layers, dissonance meter, restart
 │  ├─ style.css
-│  └─ main.ts                 # wiring only (systems + event subscriptions)
+│  └─ main.ts                         # wiring only (systems + event subscriptions)
 ├─ .vscode/
 ├─ .gitignore
 ├─ AGENTS.md
@@ -121,14 +120,14 @@ npm run preview  # serve the production build locally
 
 ## Implementation phases
 
-| Phase | Focus                                | Key files |
-| ----- | ------------------------------------ | --------- |
-| 1     | Skeleton, event bus, world state     | `core/`, `types/`, `presentation/scene.ts` |
-| 2     | Drift controller + camera rig        | `gameplay/playerController.ts`, `presentation/cameraRig.ts` |
+| Phase | Focus                                | Key files                                                                            |
+| ----- | ------------------------------------ | ------------------------------------------------------------------------------------ |
+| 1     | Skeleton, event bus, world state     | `core/`, `types/`, `presentation/scene.ts`                                           |
+| 2     | Drift controller + camera rig        | `gameplay/playerController.ts`, `presentation/cameraRig.ts`                          |
 | 3     | Collectibles, guidance, ripple VFX   | `gameplay/collectibleSystem.ts`, `gameplay/guidanceSystem.ts`, `presentation/vfx.ts` |
-| 4     | Anomalies + dissonance               | `gameplay/anomalySystem.ts` |
-| 5     | Audio director + 6 procedural layers | `audio/audioDirector.ts`, `audio/layers.ts`, `content/scale.ts` |
-| 6     | HUD, restart, polish                 | `ui/hud.ts`, `src/style.css`, `CHANGELOG.md` |
+| 4     | Anomalies + dissonance               | `gameplay/anomalySystem.ts`                                                          |
+| 5     | Audio director + 6 procedural layers | `audio/audioDirector.ts`, `audio/layers.ts`, `content/scale.ts`                      |
+| 6     | HUD, restart, polish                 | `ui/hud.ts`, `src/style.css`, `CHANGELOG.md`                                         |
 
 ## Kilo workflow
 
