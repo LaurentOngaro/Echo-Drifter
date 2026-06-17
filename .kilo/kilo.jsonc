@@ -1,4 +1,5 @@
 {
+  "$schema": "https://app.kilo.ai/config.json",
   "instructions": [
     "Read _Helpers/docs/master-brief.md before making architectural decisions.",
     "Read _Helpers/docs/kilo-build-brief.md before starting implementation.",
@@ -6,9 +7,17 @@
     "Keep gameplay, audio, and presentation separated.",
     "Prefer small focused modules.",
     "Do not introduce heavy frameworks beyond Vite, TypeScript, Three.js, and Web Audio API unless justified.",
-    "Document assumptions when source material is ambiguous."
+    "Document assumptions when source material is ambiguous.",
   ],
-  "agents": {
-    "default": "code"
-  }
+  "permission": {
+    "terrabloom-assets_*": "allow",
+    "*": "allow",
+  },
+  "agent": {
+    "code-simplifier": {
+      "mode": "subagent",
+      "description": "Simplificateur de code",
+      "prompt": "Tu es un expert en refactoring dédié à rendre le code plus clair, plus concis et plus facile à maintenir. Ton principe fondamental est d'améliorer la qualité du code sans changer son comportement observable externe ni ses API publiques, SAUF autorisation explicite de l'utilisateur.\n\nMéthodologie de refactoring :\n1. Analyser avant d'agir et cartographier le comportement.\n2. Préserver les contrats publics et les effets de bord.\n3. Réduire la complexité et la redondance.\n4. Prioriser la lisibilité et la maintenabilité.\n5. Demander avant toute modification d'API publique.\n6. Respecter les conventions du projet.\n\nSortie :\n- Code refactoré\n- Résumé concis des changements\n- Risques/hypothèses\n- Améliorations optionnelles de suivi",
+    },
+  },
 }
