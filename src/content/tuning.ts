@@ -50,7 +50,102 @@ export const anomaly = {
 } as const;
 
 export const audio = {
-  bpm: 84,
+  bpm: 90,
   masterGain: 0.55,
-  dissonanceMaxGainLoss: 0.35,
+
+  drone: {
+    rootHz: 110,
+    fifthHz: 165,
+    detuneCents: 3,
+    filterHz: 400,
+    filterQ: 1,
+    layerGain: 0.4,
+    ampLfoHz: 0.2,
+    ampLfoDepth: 0.05,
+    startDelaySec: 0.0,
+    fadeInSec: 0.8,
+    fadeOutSec: 1.2,
+  },
+
+  pulse: {
+    kick: {
+      startHz: 80,
+      endHz: 30,
+      durationMs: 80,
+      peakGain: 0.8,
+    },
+    hat: {
+      filterHz: 6000,
+      durationMs: 30,
+      peakGain: 0.15,
+    },
+    layerGain: 0.45,
+    startDelaySec: 2.0,
+    fadeInSec: 1.0,
+    fadeOutSec: 1.2,
+  },
+
+  bass: {
+    noteHz: 110,
+    noteDurationMs: 300,
+    filterHz: 200,
+    layerGain: 0.35,
+    fadeInSec: 0.8,
+    fadeOutSec: 1.2,
+    stepPerMeasure: 1,
+  },
+
+  pad: {
+    noteSequenceHz: [110, 131, 165],
+    noteIntervalSec: 2.0,
+    noteDurationSec: 1.8,
+    attackSec: 1.5,
+    decaySec: 0.3,
+    sustainLevel: 0.7,
+    releaseSec: 2.0,
+    filterHz: 800,
+    layerGain: 0.25,
+    fadeInSec: 0.8,
+    fadeOutSec: 1.2,
+  },
+
+  arp: {
+    noteSequenceHz: [165, 196, 220, 262],
+    noteIntervalSec: 2.0,
+    noteDurationSec: 1.5,
+    delayMs: 200,
+    delayFeedback: 0.3,
+    layerGain: 0.2,
+    fadeInSec: 0.8,
+    fadeOutSec: 1.2,
+  },
+
+  lead: {
+    noteSequenceHz: [220, 262, 330, 220],
+    noteDurationSec: 0.8,
+    phrasePauseSec: 1.6,
+    layerGain: 0.18,
+    fadeInSec: 0.8,
+    fadeOutSec: 1.2,
+  },
+
+  dissonance: {
+    detuneCents: 20,
+    masterGainFactor: 0.8,
+    recoverSec: 1.5,
+    applyToLayerId: 'drone',
+  },
+
+  warning: {
+    enabled: true,
+    sineHz: 80,
+    durationMs: 30,
+    peakGain: 0.05,
+    intervalMs: 600,
+    delayMs: 80,
+    delayFeedback: 0.2,
+  },
+
+  fadeInMinSec: 0.8,
+  fadeOutMinSec: 1.2,
 } as const;

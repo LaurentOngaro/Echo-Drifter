@@ -18,13 +18,13 @@ Repo GitHub : https://github.com/LaurentOngaro/Echo-Drifter
   - Audio : _Helpers/docs/Iterations/v0.1.0_notes_audio_updates.md
   - Visuel : _Helpers/docs/Iterations/v0.1.0_notes_visual_updates.md
 - Analyse du proto et feuille de route corrective : _Helpers/docs/Iterations/v0.1.0_Analyse du Proto & Feuille de route corrective.md
-- Prochaines étapes : passe corrective audio (v0.1.1), puis visuelle (v0.1.2), puis Phase 2 drift controller (v0.2.0).
+- Prochaines étapes : passe corrective audio (v0.2.0), puis visuelle (v0.3.0), puis Phase 2 drift controller (v0.2.0).
 
 ## Règles de réponse
 - Toutes les réponses sont en français, sauf les noms de fichiers, snippets de code et noms de variables.
 - Quand un fichier est généré, son contenu est fourni directement en markdown dans le chat (pas via script Python).
 - Les chemins de fichiers référencent toujours _Helpers/docs/ (jamais docs/).
-- Le versionning suit SemVer 3 chiffres (v0.1.0, v0.1.1, v0.2.0...).
+- Le versionning suit SemVer 3 chiffres (v0.1.0, v0.2.0, v0.2.0...).
 - patch (0.x.x) = correctif sur phase existante / refactor / fix.
 - minor (0.x.0) = phase MVP complète ajoutée.
 - major (x.0.0) = réservé à la version jouable end-to-end (v1.0.0).
