@@ -191,6 +191,9 @@ export const visual = {
     maxLookAhead: 0.8,
     orthographic: true,
     viewSize: 10,
+    viewSizeMin: 5,
+    viewSizeMax: 20,
+    viewSizeStep: 1,
   },
 
   lights: {

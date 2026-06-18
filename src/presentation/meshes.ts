@@ -100,7 +100,7 @@ export function createCollectibleHalo(): THREE.Mesh {
 }
 
 export function createAnomalyBloom(): THREE.Mesh {
-  const geo = new THREE.SphereGeometry(1.2, 48, 48);
+  const geo = new THREE.SphereGeometry(0.45, 48, 48);
   const mat = new THREE.MeshStandardMaterial({
     color: visual.palette.anomaly,
     emissive: visual.palette.anomaly,

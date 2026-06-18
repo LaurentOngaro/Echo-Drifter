@@ -42,3 +42,21 @@ Garder la camera actuelle, corriger le bug du carré, ajouter le "juice" et les 
 
 Je te conseille Option B d'abord pour avoir un proto agréable à montrer, puis Option A en v0.5.0 pour solidifier le gameplay.
 ```
+
+**CHOIX effectué:** Option B
+
+## suggestions après V0.4.0
+
+```md
+Deux options :
+
+Option A — Petits correctifs v0.4.1 (rapide, 30 min)
+Juste réduire le rayon de l'anomalie (SphereGeometry(0.45, ...)) et ajouter 50–80 étoiles fixes en fond. Patch minimal avant la Phase 2.
+
+Option B — Phase 2 drift controller v0.5.0 (architectural)
+Spawn de fragments, zone de jeu, drift physique. C'est ce qui donnera enfin un vrai terrain de jeu et rendra les proportions des objets évidentes en contexte.
+
+Je te conseille Option A d'abord (2 corrections ciblées dans Kilo, sans mode plan), puis v0.5.0 pour la Phase 2. Tu veux le prompt Kilo pour le patch v0.4.1 ?
+```
+
+**CHOIX effectué:** Option A

@@ -10,7 +10,41 @@ export interface EchoScene {
   cameraGroup: THREE.Group;
   scene: THREE.Scene;
   resize: () => void;
+  setViewSize(newSize: number): void;
+  getViewSize(): number;
   updatables: Updatable[];
+}
+
+function createStarField(): THREE.Points {
+  let seed = 42;
+  function nextFloat() {
+    seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+    return (seed >>> 0) / 0xffffffff;
+  }
+
+  const count = 60;
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const x = -30 + nextFloat() * 60;
+    const y = -20 + nextFloat() * 40;
+    const z = -5;
+    positions[i * 3 + 0] = x;
+    positions[i * 3 + 1] = y;
+    positions[i * 3 + 2] = z;
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+  const mat = new THREE.PointsMaterial({
+    color: 0xe8e0f0,
+    size: 0.04,
+    transparent: true,
+    opacity: 0.4,
+    sizeAttenuation: false,
+  });
+
+  return new THREE.Points(geo, mat);
 }
 
 export function createEchoScene(canvas: HTMLCanvasElement): EchoScene {
@@ -24,12 +58,12 @@ export function createEchoScene(canvas: HTMLCanvasElement): EchoScene {
   const scene = new THREE.Scene();
 
   const aspect = window.innerWidth / window.innerHeight;
-  const vs = visual.camera.viewSize;
+  let currentViewSize: number = visual.camera.viewSize;
   const camera = new THREE.OrthographicCamera(
-    (-vs * aspect) / 2,
-    (vs * aspect) / 2,
-    vs / 2,
-    -vs / 2,
+    (-currentViewSize * aspect) / 2,
+    (currentViewSize * aspect) / 2,
+    currentViewSize / 2,
+    -currentViewSize / 2,
     visual.camera.near,
     visual.camera.far,
   );
@@ -67,22 +101,39 @@ export function createEchoScene(canvas: HTMLCanvasElement): EchoScene {
   accent.position.set(-2, 1, 2);
   scene.add(accent);
 
+  const stars = createStarField();
+  scene.add(stars);
+
   const ground = createGround();
   scene.add(ground);
 
   const updatables: Updatable[] = [];
 
+  function applyViewSize() {
+    const a = window.innerWidth / window.innerHeight;
+    camera.left = (-currentViewSize * a) / 2;
+    camera.right = (currentViewSize * a) / 2;
+    camera.top = currentViewSize / 2;
+    camera.bottom = -currentViewSize / 2;
+    camera.updateProjectionMatrix();
+  }
+
   function resize() {
     const width = window.innerWidth;
     const height = window.innerHeight;
     renderer.setSize(width, height);
-    const a = width / height;
-    const v = visual.camera.viewSize;
-    camera.left = (-v * a) / 2;
-    camera.right = (v * a) / 2;
-    camera.top = v / 2;
-    camera.bottom = -v / 2;
-    camera.updateProjectionMatrix();
+    applyViewSize();
+  }
+
+  function setViewSize(newSize: number) {
+    const min = visual.camera.viewSizeMin;
+    const max = visual.camera.viewSizeMax;
+    currentViewSize = Math.max(min, Math.min(max, newSize));
+    applyViewSize();
+  }
+
+  function getViewSize(): number {
+    return currentViewSize;
   }
 
   resize();
@@ -93,6 +144,8 @@ export function createEchoScene(canvas: HTMLCanvasElement): EchoScene {
     cameraGroup,
     scene,
     resize,
+    setViewSize,
+    getViewSize,
     updatables,
   };
 }

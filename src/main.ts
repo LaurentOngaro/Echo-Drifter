@@ -292,6 +292,19 @@ function main() {
 
   window.addEventListener('resize', echoScene.resize);
 
+  window.addEventListener(
+    'wheel',
+    (e) => {
+      const step = visual.camera.viewSizeStep;
+      if (e.deltaY > 0) {
+        echoScene.setViewSize(echoScene.getViewSize() + step);
+      } else if (e.deltaY < 0) {
+        echoScene.setViewSize(echoScene.getViewSize() - step);
+      }
+    },
+    { passive: true },
+  );
+
   const hud = createHud(world, bus, audio, resetGame);
 
   setupStartOverlay(audio, () => loop.start());

@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-06-18
+
+Targeted patch on v0.4.0: anomaly size correction, background star field, and orthographic zoom control.
+
+### ✨ Added
+
+- **Background star field** in `src/presentation/scene.ts` — 60 deterministic points (`THREE.BufferGeometry` + `THREE.Points` + `PointsMaterial(0xe8e0f0, size 0.04, opacity 0.4, sizeAttenuation false)`) at z = -5 (behind the gameplay plane). Positions generated with the LCG seeder (seed = 42) over x ∈ [-30, 30], y ∈ [-20, 20]. Static: no animation, no update loop.
+- **Orthographic zoom** — `visual.camera.viewSizeMin: 5`, `viewSizeMax: 20`, `viewSizeStep: 1` in `src/content/tuning.ts`; `setViewSize(newSize)` and `getViewSize()` exposed on the `EchoScene` interface; `window.addEventListener('wheel', ...)` in `src/main.ts` calls `setViewSize(current ± step)` based on `deltaY` sign.
+
+### 🔧 Changed
+
+- `src/presentation/meshes.ts` — `createAnomalyBloom()` sphere radius `1.2 → 0.45` (all other parameters unchanged). The anomaly group is still scaled by `a.radius * pulse * dissonanceScale` in `anomalyUpdater`, so the in-world footprint of the anomaly zone is unaffected; only the visual bloom mesh is smaller.
+- `src/presentation/scene.ts` — `resize()` now delegates to a shared `applyViewSize()` that reads a closure-local `currentViewSize: number` (initialised from `visual.camera.viewSize`); the wheel zoom persists across window resizes.
+
+### 🐛 Fixed
+
+- Anomaly blooms were visually overwhelming the scene (1.2 radius on top of the `a.radius` group scale). Reduced to 0.45 so the desaturated red is present but no longer dominates the frame.
+
+### ✅ Tests
+
+- `npm run build` passes with zero TS errors.
+- `currentViewSize` is explicitly typed `: number` to avoid the `as const` literal-type inference that previously rejected assignment of the wheel-derived value.
+
 ## [0.4.0] - 2026-06-18
 
 Polish pass: fix P0 (glow billboard square), fix P1 (quasi-2D orthographic view), visual juice (collect flash, particle burst, screen shake), and 3 contact sounds (enriched collect tone, layer-unlock arpeggio, anomaly-proximity hum).
