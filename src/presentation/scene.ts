@@ -6,7 +6,8 @@ import { createGround } from './meshes.ts';
 
 export interface EchoScene {
   renderer: THREE.WebGLRenderer;
-  camera: THREE.PerspectiveCamera;
+  camera: THREE.OrthographicCamera;
+  cameraGroup: THREE.Group;
   scene: THREE.Scene;
   resize: () => void;
   updatables: Updatable[];
@@ -22,13 +23,23 @@ export function createEchoScene(canvas: HTMLCanvasElement): EchoScene {
 
   const scene = new THREE.Scene();
 
-  const camera = new THREE.PerspectiveCamera(
-    visual.camera.fov,
-    window.innerWidth / window.innerHeight,
+  const aspect = window.innerWidth / window.innerHeight;
+  const vs = visual.camera.viewSize;
+  const camera = new THREE.OrthographicCamera(
+    (-vs * aspect) / 2,
+    (vs * aspect) / 2,
+    vs / 2,
+    -vs / 2,
     visual.camera.near,
     visual.camera.far,
   );
-  camera.position.set(0, 0, visual.camera.fixedZ);
+  camera.position.set(0, visual.camera.fixedHeight, 0);
+  camera.up.set(0, 0, -1);
+  camera.lookAt(0, 0, 0);
+
+  const cameraGroup = new THREE.Group();
+  cameraGroup.add(camera);
+  scene.add(cameraGroup);
 
   const ambient = new THREE.AmbientLight(
     visual.lights.ambient.color,
@@ -65,7 +76,12 @@ export function createEchoScene(canvas: HTMLCanvasElement): EchoScene {
     const width = window.innerWidth;
     const height = window.innerHeight;
     renderer.setSize(width, height);
-    camera.aspect = width / height;
+    const a = width / height;
+    const v = visual.camera.viewSize;
+    camera.left = (-v * a) / 2;
+    camera.right = (v * a) / 2;
+    camera.top = v / 2;
+    camera.bottom = -v / 2;
     camera.updateProjectionMatrix();
   }
 
@@ -74,6 +90,7 @@ export function createEchoScene(canvas: HTMLCanvasElement): EchoScene {
   return {
     renderer,
     camera,
+    cameraGroup,
     scene,
     resize,
     updatables,

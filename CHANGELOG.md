@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-18
+
+Polish pass: fix P0 (glow billboard square), fix P1 (quasi-2D orthographic view), visual juice (collect flash, particle burst, screen shake), and 3 contact sounds (enriched collect tone, layer-unlock arpeggio, anomaly-proximity hum).
+
+### ✨ Added
+
+- **`createGlowTexture(color, size=128)`** in `src/presentation/meshes.ts` — procedural radial-gradient canvas texture used by all billboard glows; centre 100% → mid 53% → edge 0% alpha. Removes the visible square border around player/collectible/anomaly orbs.
+- **`visual.camera.orthographic: true` + `visual.camera.viewSize: 10`** — switches the scene to a quasi-2D orthographic frustum tuned for global drift visibility.
+- **Camera group** in `src/presentation/scene.ts` — the camera is parented under a `THREE.Group` so the shake offset can be applied to the group without disturbing the camera's local position managed by the rig.
+- **Collect flash** (`vfx.spawnCollectFlash(position, color)`) — temporary `MeshStandardMaterial` sphere at the collect point; `emissiveIntensity` triangle 0.5 → 1.8 → 0.5 over 250 ms (peak at 80 ms); then disposed.
+- **Collect burst** (`vfx.spawnBurst(position, color)`) — pool of 12 additive spheres; 6 ejected at 60° intervals in the XZ plane, speed 2.5 u/s, friction 0.85/frame, scale + opacity 1 → 0 over 400 ms.
+- **Screen shake** (`vfx.triggerShake(intensity, durationMs)` + `vfx.getShakeOffset()`) — collect: intensity 0.06, 200 ms, exp decay × sin(50 Hz) noise. Anomaly: intensity 0.04, continuous pulse at 3 Hz while dissonance > 0, 0.8 s fade-out on exit. Offset written to `cameraGroup.position` (not the camera itself, so no accumulation with the rig's lerp).
+- **`audio.collectTone`** tuning — `fifthHzRatio: 1.5`, `echoDelayMs: 120`, `echoFeedback: 0.15`, `secondOscGain: 0.08`, `secondOscDurationMs: 180`.
+- **`audio.layerUnlock`** tuning — `rootHz: 110`, `thirdHz: 131`, `fifthHz: 165`, `noteDurationMs: 120`, `noteSpacingMs: 80`, `noteGain: 0.15`, `filterHz: 1200`, `attackSec: 0.005`, `releaseSec: 0.2`.
+- **`audio.anomalyProximity`** tuning — `lfoHz: 4`, `sineHz: 80`, `maxGain: 0.12`, `fadeInSec: 0.5`, `fadeOutSec: 0.8`, `lfoDepth: 0.5`.
+- **Enriched `playCollectTone`** — second `sine` oscillator at `freq * 1.5` (gain 0.08, 180 ms) plus a shared `DelayNode` (120 ms, feedback 0.15) wired into the master gain for a light echo.
+- **`playLayerUnlock`** (internal) — 3-note arpeggio (A2 / C3 / E3) with shared 1200 Hz lowpass, 80 ms apart, 200 ms release, automatically called from `unlock(id)`.
+- **Anomaly-proximity voice** (internal) — persistent `sine` at 80 Hz with a 4 Hz LFO modulating a tremolo gain; envelope ramps to `amount * 0.12` with 0.5 s fade-in / 0.8 s fade-out, managed inside `setDissonance(amount)`.
+
+### 🔧 Changed
+
+- `src/presentation/meshes.ts` — `createPlayerGlow` / `createCollectibleGlow` / `createAnomalyGlow` now use `MeshBasicMaterial({ map: createGlowTexture(color), opacity: 1.0, ... })` (colour lives in the texture, gradient handles the edge alpha).
+- `src/presentation/scene.ts` — `PerspectiveCamera` replaced by `OrthographicCamera`; `resize()` recomputes left/right/top/bottom from `visual.camera.viewSize` and the current aspect every resize; camera parented under `cameraGroup` (returned on the `EchoScene` interface).
+- `src/presentation/vfx.ts` — `createVfxSystem(scene, cameraGroup)` now takes the camera group; flash/burst pools; shake state machine; shake offset written to `cameraGroup.position` (not `camera.position`) to avoid fighting the rig's lerp.
+- `src/audio/musicStateMachine.ts` — `init()` builds the shared `echoDelay`/`echoFb` loop and the persistent `proxSine`/`proxLfo`/`proxTremolo`/`proxEnv` voice; `playCollectTone` routes through the echo; `unlock()` calls `playLayerUnlock()`; `setDissonance()` drives the proximity envelope with directional fade-in/fade-out; `stop()` also fades the proximity voice to 0.
+- `src/main.ts` — passes `echoScene.cameraGroup` to `createVfxSystem`; on collect, calls `spawnRipple` + `spawnCollectFlash` + `spawnBurst` + `triggerShake(0.06, 200)`; casts `echoScene.camera` to `PerspectiveCamera` for the (unchanged) cameraRig interface.
+
+### 🐛 Fixed
+
+- **P0 — Square border around glow orbs**: replaced the flat-colour `MeshBasicMaterial` plane with a radial-gradient `CanvasTexture`; the transparent edges of the plane no longer show a hard square.
+- **P1 — Perspective foreshortening**: the scene now uses an `OrthographicCamera` (viewSize = 10 world units vertical) so the drift field is fully visible without perspective distortion. The gameplay coordinates are unchanged; only the camera changed.
+- **Screen-shake / rig interaction**: the shake is applied to a parent `cameraGroup` instead of the camera's own position, so the rig's X/Y lerp doesn't absorb the shake over time and there is no permanent drift.
+
+### ✅ Tests
+
+- `npm run build` passes with zero TS errors.
+- `Math.random` in `src/audio/`: 0 matches (contact-sound frequencies are all hard-coded from `audioCfg.*`).
+
 ## [0.3.0] - 2026-06-17
 
 Presentation layer rewrite to match the v0.1.0 visual brief exactly: rounded-only geometries, brief-specified materials/lights, fixed-camera quasi-orthographic view, deterministic 0.8 Hz pulses, lerped transitions, pure-DOM HUD with Orbitron + monospace stack.

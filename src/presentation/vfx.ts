@@ -16,10 +16,27 @@ interface TrailSphereInstance {
   opacity: number;
 }
 
+interface FlashInstance {
+  mesh: THREE.Mesh;
+  ageSec: number;
+  durationSec: number;
+}
+
+interface BurstParticle {
+  mesh: THREE.Mesh;
+  velocity: THREE.Vector3;
+  ageSec: number;
+  active: boolean;
+}
+
 export interface VfxSystem {
   updatable: Updatable;
   spawnRipple(position: Vec3, color: number): void;
+  spawnCollectFlash(position: Vec3, color: number): void;
+  spawnBurst(position: Vec3, color: number): void;
+  triggerShake(intensity: number, durationMs: number): void;
   setDissonance(amount: number): void;
+  getShakeOffset(): THREE.Vector2;
   trailGroup: THREE.Group;
   setPlayerPosition(position: Vec3): void;
   setPlayerVelocity(velocity: Vec3): void;
@@ -33,7 +50,28 @@ function lerpScalar(a: number, b: number, k: number): number {
   return a + (b - a) * k;
 }
 
-export function createVfxSystem(scene: THREE.Scene): VfxSystem {
+function flashIntensityAt(ageSec: number): number {
+  const peak = visual.flash.peakMs / 1000;
+  const dur = visual.flash.durationMs / 1000;
+  if (ageSec < 0 || ageSec > dur) return visual.flash.endIntensity;
+  if (ageSec < peak) {
+    const t = ageSec / peak;
+    return (
+      visual.flash.startIntensity +
+      (visual.flash.peakIntensity - visual.flash.startIntensity) * t
+    );
+  }
+  const t = (ageSec - peak) / (dur - peak);
+  return (
+    visual.flash.peakIntensity +
+    (visual.flash.endIntensity - visual.flash.peakIntensity) * t
+  );
+}
+
+export function createVfxSystem(
+  scene: THREE.Scene,
+  cameraGroup: THREE.Object3D,
+): VfxSystem {
   const pool: RippleInstance[] = [];
   for (let i = 0; i < visual.ripple.maxConcurrent; i++) {
     const mesh = createRipple(visual.palette.collectible);
@@ -56,12 +94,45 @@ export function createVfxSystem(scene: THREE.Scene): VfxSystem {
     });
   }
 
+  const flashGeo = new THREE.SphereGeometry(visual.flash.sphereRadius, 16, 16);
+  const flashes: FlashInstance[] = [];
+
+  const burstGeo = new THREE.SphereGeometry(visual.burst.sphereRadius, 6, 6);
+  const burst: BurstParticle[] = [];
+  for (let i = 0; i < visual.burst.poolSize; i++) {
+    const mat = new THREE.MeshBasicMaterial({
+      color: visual.palette.collectible,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const mesh = new THREE.Mesh(burstGeo, mat);
+    mesh.visible = false;
+    scene.add(mesh);
+    burst.push({
+      mesh,
+      velocity: new THREE.Vector3(),
+      ageSec: 0,
+      active: false,
+    });
+  }
+
   const playerPosition = new THREE.Vector3();
   const playerVelocity = new THREE.Vector3();
   let lastTrailWrite = 0;
   let lastPlayerWritePos = new THREE.Vector3();
   let trailInitialized = false;
   let dissonance = 0;
+  let totalTime = 0;
+
+  const shakeOffset = new THREE.Vector2(0, 0);
+  const collectShake = { intensity: 0, time: 0, duration: 0, active: false };
+  const anomalyShake = {
+    intensity: visual.shake.anomalyIntensity,
+    active: false,
+    fadeTime: 0,
+  };
 
   function spawnRipple(position: Vec3, color: number) {
     let slot = pool.find((r) => !r.active);
@@ -86,8 +157,66 @@ export function createVfxSystem(scene: THREE.Scene): VfxSystem {
     if (!slot.mesh.parent) scene.add(slot.mesh);
   }
 
+  function spawnCollectFlash(position: Vec3, color: number) {
+    const mat = new THREE.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: visual.flash.startIntensity,
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const mesh = new THREE.Mesh(flashGeo, mat);
+    mesh.position.set(position.x, position.y, position.z);
+    scene.add(mesh);
+    flashes.push({
+      mesh,
+      ageSec: 0,
+      durationSec: visual.flash.durationMs / 1000,
+    });
+  }
+
+  function spawnBurst(position: Vec3, color: number) {
+    let activated = 0;
+    for (let i = 0; i < burst.length && activated < visual.burst.activePerBurst; i++) {
+      if (burst[i].active) continue;
+      const p = burst[i];
+      p.active = true;
+      p.ageSec = 0;
+      const angle = (activated * Math.PI) / 3;
+      p.velocity.set(
+        Math.cos(angle) * visual.burst.initialSpeed,
+        0,
+        Math.sin(angle) * visual.burst.initialSpeed,
+      );
+      p.mesh.position.set(position.x, position.y, position.z);
+      p.mesh.visible = true;
+      p.mesh.scale.setScalar(1);
+      (p.mesh.material as THREE.MeshBasicMaterial).color.setHex(color);
+      (p.mesh.material as THREE.MeshBasicMaterial).opacity = 1;
+      activated++;
+    }
+  }
+
+  function triggerShake(intensity: number, durationMs: number) {
+    collectShake.intensity = intensity;
+    collectShake.time = 0;
+    collectShake.duration = durationMs / 1000;
+    collectShake.active = true;
+  }
+
   function setDissonance(amount: number) {
     dissonance = Math.max(0, Math.min(1, amount));
+    if (dissonance > 0) {
+      anomalyShake.active = true;
+      anomalyShake.intensity = visual.shake.anomalyIntensity;
+      anomalyShake.fadeTime = 0;
+    }
+  }
+
+  function getShakeOffset(): THREE.Vector2 {
+    return shakeOffset.clone();
   }
 
   function setPlayerPosition(position: Vec3) {
@@ -100,6 +229,7 @@ export function createVfxSystem(scene: THREE.Scene): VfxSystem {
 
   const updatable: Updatable = {
     update(dt: number) {
+      totalTime += dt;
       const dtMs = dt * 1000;
 
       for (const r of pool) {
@@ -122,6 +252,36 @@ export function createVfxSystem(scene: THREE.Scene): VfxSystem {
         const dissonanceShift = 1 - dissonance * 0.4;
         (r.mesh.material as THREE.MeshBasicMaterial).opacity =
           (1 - t) * dissonanceShift;
+      }
+
+      for (let i = flashes.length - 1; i >= 0; i--) {
+        const f = flashes[i];
+        f.ageSec += dt;
+        if (f.ageSec >= f.durationSec) {
+          scene.remove(f.mesh);
+          (f.mesh.material as THREE.Material).dispose();
+          flashes.splice(i, 1);
+          continue;
+        }
+        (f.mesh.material as THREE.MeshStandardMaterial).emissiveIntensity =
+          flashIntensityAt(f.ageSec);
+      }
+
+      for (const p of burst) {
+        if (!p.active) continue;
+        p.ageSec += dt;
+        const t = p.ageSec / (visual.burst.durationMs / 1000);
+        if (t >= 1) {
+          p.active = false;
+          p.mesh.visible = false;
+          continue;
+        }
+        p.mesh.position.x += p.velocity.x * dt;
+        p.mesh.position.z += p.velocity.z * dt;
+        p.velocity.multiplyScalar(visual.burst.frictionPerFrame);
+        const k = 1 - t;
+        p.mesh.scale.setScalar(k);
+        (p.mesh.material as THREE.MeshBasicMaterial).opacity = k;
       }
 
       const speed = playerVelocity.length();
@@ -167,13 +327,58 @@ export function createVfxSystem(scene: THREE.Scene): VfxSystem {
           t.mesh.visible = false;
         }
       }
+
+      let offX = 0;
+      let offY = 0;
+
+      if (collectShake.active) {
+        collectShake.time += dt;
+        if (collectShake.time >= collectShake.duration) {
+          collectShake.active = false;
+        } else {
+          const decay = Math.exp(-collectShake.time / collectShake.duration);
+          const noise = Math.sin(collectShake.time * visual.shake.collectNoiseFreq);
+          const amp = collectShake.intensity * decay;
+          offX += amp * noise;
+          offY += amp * Math.cos(collectShake.time * visual.shake.collectNoiseFreq);
+        }
+      }
+
+      if (anomalyShake.active) {
+        if (dissonance > 0) {
+          const phase = totalTime * 2 * Math.PI * visual.shake.anomalyFreq;
+          offX += anomalyShake.intensity * Math.sin(phase);
+          offY += anomalyShake.intensity * Math.cos(phase);
+        } else {
+          anomalyShake.fadeTime += dt;
+          const fade = Math.max(
+            0,
+            1 - anomalyShake.fadeTime / visual.shake.anomalyFadeOutSec,
+          );
+          if (fade <= 0) {
+            anomalyShake.active = false;
+          } else {
+            const phase = totalTime * 2 * Math.PI * visual.shake.anomalyFreq;
+            offX += anomalyShake.intensity * fade * Math.sin(phase);
+            offY += anomalyShake.intensity * fade * Math.cos(phase);
+          }
+        }
+      }
+
+      shakeOffset.set(offX, offY);
+      cameraGroup.position.x = shakeOffset.x;
+      cameraGroup.position.y = shakeOffset.y;
     },
   };
 
   return {
     updatable,
     spawnRipple,
+    spawnCollectFlash,
+    spawnBurst,
+    triggerShake,
     setDissonance,
+    getShakeOffset,
     trailGroup,
     setPlayerPosition,
     setPlayerVelocity,

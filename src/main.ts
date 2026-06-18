@@ -44,7 +44,7 @@ function main() {
   const echoScene = createEchoScene(canvas);
   const loop = createGameLoop();
   const input = createKeyboardInput();
-  const vfx = createVfxSystem(echoScene.scene);
+  const vfx = createVfxSystem(echoScene.scene, echoScene.cameraGroup);
   const audio = createAudioDirector();
   const billboards = createBillboardRegistry();
   billboards.setCamera(echoScene.camera);
@@ -146,7 +146,7 @@ function main() {
   });
 
   const rig = createCameraRig({
-    camera: echoScene.camera,
+    camera: echoScene.camera as unknown as THREE.PerspectiveCamera,
     getTarget: () => world.playerPosition,
     getVelocity: () => world.playerVelocity,
   });
@@ -195,6 +195,9 @@ function main() {
       markCollected(world, collected);
       const pos: Vec3 = { ...collected.position };
       vfx.spawnRipple(pos, visual.palette.collectible);
+      vfx.spawnCollectFlash(pos, visual.palette.collectible);
+      vfx.spawnBurst(pos, visual.palette.collectible);
+      vfx.triggerShake(visual.shake.collectIntensity, visual.shake.collectDurationMs);
       const entry = fragmentEntries.get(collected.id);
       if (entry) entry.group.visible = false;
       bus.emit({ type: 'COLLECTED', id: collected.id, position: pos });

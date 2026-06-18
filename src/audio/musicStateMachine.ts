@@ -29,6 +29,17 @@ export function createMusicStateMachine(): MusicStateMachine {
   let warningDelay: DelayNode | null = null;
   let warningDelayFb: GainNode | null = null;
   let warningTimer: ReturnType<typeof setInterval> | null = null;
+
+  let echoDelay: DelayNode | null = null;
+  let echoFb: GainNode | null = null;
+
+  let proxSine: OscillatorNode | null = null;
+  let proxTremolo: GainNode | null = null;
+  let proxLfo: OscillatorNode | null = null;
+  let proxLfoScale: GainNode | null = null;
+  let proxEnv: GainNode | null = null;
+  let prevDissonance = 0;
+
   let ready = false;
 
   const layers = new Map<MusicLayerId, MusicLayer>();
@@ -57,6 +68,41 @@ export function createMusicStateMachine(): MusicStateMachine {
     warningDelay.connect(warningDelayFb);
     warningDelayFb.connect(warningDelay);
     warningDelay.connect(masterGain);
+
+    echoDelay = ctx.createDelay(1.0);
+    echoDelay.delayTime.setValueAtTime(
+      audioCfg.collectTone.echoDelayMs / 1000,
+      ctx.currentTime,
+    );
+    echoFb = ctx.createGain();
+    echoFb.gain.setValueAtTime(
+      audioCfg.collectTone.echoFeedback,
+      ctx.currentTime,
+    );
+    echoDelay.connect(echoFb);
+    echoFb.connect(echoDelay);
+    echoDelay.connect(masterGain);
+
+    const t0 = ctx.currentTime;
+    proxSine = ctx.createOscillator();
+    proxSine.type = 'sine';
+    proxSine.frequency.setValueAtTime(audioCfg.anomalyProximity.sineHz, t0);
+    proxTremolo = ctx.createGain();
+    proxTremolo.gain.setValueAtTime(1.0, t0);
+    proxSine.connect(proxTremolo);
+    proxLfo = ctx.createOscillator();
+    proxLfo.type = 'sine';
+    proxLfo.frequency.setValueAtTime(audioCfg.anomalyProximity.lfoHz, t0);
+    proxLfoScale = ctx.createGain();
+    proxLfoScale.gain.setValueAtTime(audioCfg.anomalyProximity.lfoDepth, t0);
+    proxLfo.connect(proxLfoScale);
+    proxLfoScale.connect(proxTremolo.gain);
+    proxEnv = ctx.createGain();
+    proxEnv.gain.setValueAtTime(0, t0);
+    proxTremolo.connect(proxEnv);
+    proxEnv.connect(masterGain);
+    proxSine.start(t0);
+    proxLfo.start(t0);
 
     const drone = new DroneLayer(ctx, masterGain);
     const pulse = new PulseLayer(ctx, masterGain);
@@ -90,6 +136,36 @@ export function createMusicStateMachine(): MusicStateMachine {
     }
   }
 
+  function playLayerUnlock() {
+    if (!ctx || !masterGain) return;
+    const t0 = ctx.currentTime;
+    const cfg = audioCfg.layerUnlock;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(cfg.filterHz, t0);
+    filter.connect(masterGain);
+
+    const freqs = [cfg.rootHz, cfg.thirdHz, cfg.fifthHz];
+    for (let i = 0; i < freqs.length; i++) {
+      const t = t0 + (i * cfg.noteSpacingMs) / 1000;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freqs[i], t);
+      const dur = cfg.noteDurationMs / 1000;
+      const release = cfg.releaseSec;
+      const total = dur + release;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(cfg.noteGain, t + cfg.attackSec);
+      gain.gain.setValueAtTime(cfg.noteGain, t + dur);
+      gain.gain.linearRampToValueAtTime(0, t + dur + release);
+      osc.connect(gain);
+      gain.connect(filter);
+      osc.start(t);
+      osc.stop(t + total + 0.05);
+    }
+  }
+
   function unlock(layer: MusicLayerId) {
     if (!ctx) return;
     if (active.has(layer)) return;
@@ -98,6 +174,21 @@ export function createMusicStateMachine(): MusicStateMachine {
     const t = ctx.currentTime + 0.05;
     instance.start(t);
     active.add(layer);
+    playLayerUnlock();
+  }
+
+  function updateProximityEnvelope(amount: number) {
+    if (!ctx || !proxEnv) return;
+    const t = ctx.currentTime;
+    const target = amount > 0 ? amount * audioCfg.anomalyProximity.maxGain : 0;
+    const duration =
+      amount > prevDissonance
+        ? audioCfg.anomalyProximity.fadeInSec
+        : audioCfg.anomalyProximity.fadeOutSec;
+    proxEnv.gain.cancelScheduledValues(t);
+    proxEnv.gain.setValueAtTime(proxEnv.gain.value, t);
+    proxEnv.gain.linearRampToValueAtTime(target, t + duration);
+    prevDissonance = amount;
   }
 
   function setDissonance(amount: number) {
@@ -111,7 +202,9 @@ export function createMusicStateMachine(): MusicStateMachine {
     }
 
     if (masterGain) {
-      const target = audioCfg.masterGain * (1 - amount * (1 - audioCfg.dissonance.masterGainFactor));
+      const target =
+        audioCfg.masterGain *
+        (1 - amount * (1 - audioCfg.dissonance.masterGainFactor));
       masterGain.gain.cancelScheduledValues(t);
       masterGain.gain.setValueAtTime(masterGain.gain.value, t);
       masterGain.gain.linearRampToValueAtTime(
@@ -119,6 +212,8 @@ export function createMusicStateMachine(): MusicStateMachine {
         t + audioCfg.dissonance.recoverSec * 0.4,
       );
     }
+
+    updateProximityEnvelope(amount);
 
     if (amount > 0.15) {
       startWarning();
@@ -164,6 +259,12 @@ export function createMusicStateMachine(): MusicStateMachine {
     }
     active.clear();
     stopWarning();
+    if (proxEnv) {
+      proxEnv.gain.cancelScheduledValues(t);
+      proxEnv.gain.setValueAtTime(proxEnv.gain.value, t);
+      proxEnv.gain.linearRampToValueAtTime(0, t + audioCfg.anomalyProximity.fadeOutSec);
+    }
+    prevDissonance = 0;
   }
 
   async function resume() {
@@ -182,8 +283,10 @@ export function createMusicStateMachine(): MusicStateMachine {
   }
 
   function playCollectTone(freq: number) {
-    if (!ctx || !masterGain) return;
+    if (!ctx || !masterGain || !echoDelay) return;
     const t = ctx.currentTime;
+    const cfg = audioCfg.collectTone;
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'triangle';
@@ -192,9 +295,22 @@ export function createMusicStateMachine(): MusicStateMachine {
     gain.gain.linearRampToValueAtTime(0.35, t + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
     osc.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(echoDelay);
     osc.start(t);
     osc.stop(t + 0.3);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(freq * cfg.fifthHzRatio, t);
+    const secondDur = cfg.secondOscDurationMs / 1000;
+    gain2.gain.setValueAtTime(0, t);
+    gain2.gain.linearRampToValueAtTime(cfg.secondOscGain, t + 0.01);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, t + secondDur);
+    osc2.connect(gain2);
+    gain2.connect(echoDelay);
+    osc2.start(t);
+    osc2.stop(t + secondDur + 0.05);
   }
 
   return {

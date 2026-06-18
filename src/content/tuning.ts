@@ -146,6 +146,35 @@ export const audio = {
     delayFeedback: 0.2,
   },
 
+  collectTone: {
+    fifthHzRatio: 1.5,
+    echoDelayMs: 120,
+    echoFeedback: 0.15,
+    secondOscGain: 0.08,
+    secondOscDurationMs: 180,
+  },
+
+  layerUnlock: {
+    rootHz: 110,
+    thirdHz: 131,
+    fifthHz: 165,
+    noteDurationMs: 120,
+    noteSpacingMs: 80,
+    noteGain: 0.15,
+    filterHz: 1200,
+    attackSec: 0.005,
+    releaseSec: 0.2,
+  },
+
+  anomalyProximity: {
+    lfoHz: 4,
+    sineHz: 80,
+    maxGain: 0.12,
+    fadeInSec: 0.5,
+    fadeOutSec: 0.8,
+    lfoDepth: 0.5,
+  },
+
   fadeInMinSec: 0.8,
   fadeOutMinSec: 1.2,
 } as const;
@@ -157,9 +186,11 @@ export const visual = {
     fov: 55,
     near: 0.1,
     far: 100,
-    fixedZ: 8,
+    fixedHeight: 8,
     damping: 0.88,
     maxLookAhead: 0.8,
+    orthographic: true,
+    viewSize: 10,
   },
 
   lights: {
@@ -208,5 +239,32 @@ export const visual = {
     radius: 60,
     opacity: 0.12,
     color: 0x0a0612,
+  },
+
+  shake: {
+    collectIntensity: 0.06,
+    collectDurationMs: 200,
+    collectNoiseFreq: 50,
+    anomalyIntensity: 0.04,
+    anomalyFreq: 3,
+    anomalyFadeOutSec: 0.8,
+  },
+
+  flash: {
+    durationMs: 250,
+    peakMs: 80,
+    startIntensity: 0.5,
+    peakIntensity: 1.8,
+    endIntensity: 0.5,
+    sphereRadius: 0.3,
+  },
+
+  burst: {
+    poolSize: 12,
+    activePerBurst: 6,
+    sphereRadius: 0.06,
+    initialSpeed: 2.5,
+    frictionPerFrame: 0.85,
+    durationMs: 400,
   },
 } as const;

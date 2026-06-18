@@ -23,15 +23,14 @@ export function createCameraRig(deps: CameraRigDeps): Updatable {
       const k = (1 - cfg.damping) * cappedDt * 60;
 
       const targetX = t.x;
-      const targetY = t.y;
+      const targetZ = t.z;
       cam.position.x += (targetX - cam.position.x) * k;
-      cam.position.y += (targetY - cam.position.y) * k;
-      cam.position.z = cfg.fixedZ;
+      cam.position.z += (targetZ - cam.position.z) * k;
+      cam.position.y = cfg.fixedHeight;
 
       const lookX = t.x + v.x * cfg.maxLookAhead;
-      const lookY = t.y;
-      const lookZ = 0;
-      lookAt.set(lookX, lookY, lookZ);
+      const lookZ = t.z + v.z * cfg.maxLookAhead;
+      lookAt.set(lookX, 0, lookZ);
       cam.lookAt(lookAt);
     },
   };

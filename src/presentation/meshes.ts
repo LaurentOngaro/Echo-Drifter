@@ -3,6 +3,29 @@ import * as THREE from 'three';
 import type { Updatable } from '../types/index.ts';
 import { visual } from '../content/tuning.ts';
 
+function createGlowTexture(color: number, size = 128): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  const c = new THREE.Color(color);
+  const hex = `#${c.getHexString()}`;
+  const grad = ctx.createRadialGradient(
+    size / 2,
+    size / 2,
+    0,
+    size / 2,
+    size / 2,
+    size / 2,
+  );
+  grad.addColorStop(0, hex + 'ff');
+  grad.addColorStop(0.4, hex + '88');
+  grad.addColorStop(1, hex + '00');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+  return new THREE.CanvasTexture(canvas);
+}
+
 export function createPlayerOrb(): THREE.Mesh {
   const geo = new THREE.SphereGeometry(0.55, 48, 48);
   const mat = new THREE.MeshStandardMaterial({
@@ -21,9 +44,9 @@ export function createPlayerOrb(): THREE.Mesh {
 export function createPlayerGlow(): THREE.Mesh {
   const geo = new THREE.PlaneGeometry(1.6, 1.6);
   const mat = new THREE.MeshBasicMaterial({
-    color: visual.palette.playerGlow,
+    map: createGlowTexture(visual.palette.playerGlow),
     transparent: true,
-    opacity: 0.35,
+    opacity: 1.0,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
@@ -50,9 +73,9 @@ export function createCollectibleOrb(): THREE.Mesh {
 export function createCollectibleGlow(): THREE.Mesh {
   const geo = new THREE.PlaneGeometry(1.0, 1.0);
   const mat = new THREE.MeshBasicMaterial({
-    color: visual.palette.collectibleGlow,
+    map: createGlowTexture(visual.palette.collectibleGlow),
     transparent: true,
-    opacity: 0.4,
+    opacity: 1.0,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
@@ -93,9 +116,9 @@ export function createAnomalyBloom(): THREE.Mesh {
 export function createAnomalyGlow(): THREE.Mesh {
   const geo = new THREE.PlaneGeometry(3.0, 3.0);
   const mat = new THREE.MeshBasicMaterial({
-    color: visual.palette.anomaly,
+    map: createGlowTexture(visual.palette.anomaly),
     transparent: true,
-    opacity: 0.2,
+    opacity: 1.0,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
   });
